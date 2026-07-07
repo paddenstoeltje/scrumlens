@@ -1,5 +1,5 @@
 export default defineNuxtRouteMiddleware(async (to) => {
-  if (to.name === 'auth-verify')
+  if (to.name === 'auth-verify' || to.name === 'login')
     return
 
   const { isAuth, restoreAuthState } = useAuth()

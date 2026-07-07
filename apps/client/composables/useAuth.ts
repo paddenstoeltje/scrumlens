@@ -72,7 +72,7 @@ async function logout() {
     await api.auth.postAuthLogout()
     authStore.value = false
     userRaw.value = undefined
-    router.push('/login')
+    await navigateTo('/login')
   }
   catch (err) {
     console.error(err)
