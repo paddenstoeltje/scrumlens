@@ -1,0 +1,35 @@
+{
+  "name": "scrumlens-server",
+  "version": "0.0.0",
+  "module": "src/index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "start:node": "node --import @swc-node/register/esm-register src/index.ts"
+  },
+  "dependencies": {
+    "@bogeychan/elysia-logger": "^0.1.1",
+    "@elysiajs/static": "^1.1.0",
+    "@elysiajs/swagger": "^1.1.0",
+    "ejs": "^3.1.10",
+    "elysia": "^1.1.4",
+    "jsonwebtoken": "^9.0.2",
+    "ky": "^1.6.0",
+    "mongoose": "^8.5.1",
+    "nanoid": "^5.0.7",
+    "nodemailer": "^6.9.14",
+    "qs": "^6.13.0",
+    "resend": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/ejs": "^3.1.5",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/nodemailer": "^6.4.15",
+    "@types/qs": "^6.9.15",
+    "bun-types": "latest"
+  }
+}

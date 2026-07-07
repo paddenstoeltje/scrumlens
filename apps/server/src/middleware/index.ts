@@ -1,0 +1,33 @@
+import Elysia from 'elysia'
+import { Cookie } from '../../../../shared/types'
+import { verifyToken } from '@/utils'
+
+const app = new Elysia()
+  .state('userId', '')
+  .onBeforeHandle(({ cookie, store }) => {
+    try {
+      const token = cookie[Cookie.AccessToken]?.value
+      if (token) {
+        const decoded = verifyToken(token)
+        store.userId = decoded.userId
+      }
+    }
+    catch {
+      store.userId = ''
+    }
+  })
+  .macro(({ onBeforeHandle }) => ({
+    requiredAuth(bool: boolean) {
+      onBeforeHandle(({ set, store }) => {
+        if (!bool)
+          return
+
+        if (!store.userId) {
+          set.status = 401
+          return { message: 'Unauthorized' }
+        }
+      })
+    },
+  }))
+
+export default app
