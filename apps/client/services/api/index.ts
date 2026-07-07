@@ -14,7 +14,7 @@ const customFetch = ky.create({
           }
           catch (err) {
             const { logout } = useAuth()
-            await logout()
+            await logout({ redirect: false })
             console.error(err)
           }
         }

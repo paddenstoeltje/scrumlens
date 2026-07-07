@@ -69,3 +69,24 @@ export function generateInviteToken(userId: string, boardId: string) {
 export function verifyToken(token: string) {
   return jwt.verify(token, Bun.env.SECRET_KEY) as JwtPayload
 }
+
+export function resolveCookieDomain(request?: Request) {
+  const configuredDomain = Bun.env.COOKIE_DOMAIN?.trim().replace(/^\./, '')
+
+  if (!request)
+    return configuredDomain
+
+  const requestHostname = new URL(request.url).hostname
+
+  if (!configuredDomain)
+    return requestHostname
+
+  if (
+    requestHostname === configuredDomain
+    || requestHostname.endsWith(`.${configuredDomain}`)
+  ) {
+    return configuredDomain
+  }
+
+  return requestHostname
+}

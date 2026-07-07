@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { computed, watch } from 'vue'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
@@ -8,6 +9,11 @@ import { RoutePath } from '@/types'
 const { fixedLogin, logout, isAuth } = useAuth()
 const router: ReturnType<typeof useRouter> = useRouter()
 const route: ReturnType<typeof useRoute> = useRoute()
+const redirectTarget = computed(() => {
+  return typeof route.query.redirect === 'string'
+    ? route.query.redirect
+    : RoutePath.Dashboard
+})
 
 const formSchema = toTypedSchema(
   z.object({
@@ -22,16 +28,21 @@ const { handleSubmit, resetForm } = useForm({
 
 const isLoading = ref<boolean>(false)
 
+watch(
+  isAuth,
+  (value) => {
+    if (value)
+      navigateTo(redirectTarget.value)
+  },
+  { immediate: true },
+)
+
 const onSubmit = handleSubmit(async (values: { username: string; password: string }) => {
   isLoading.value = true
   try {
     const isSuccess: boolean = await fixedLogin(values.username, values.password)
     if (isSuccess) {
-      if (route.query.redirect) {
-        router.push(route.query.redirect as string)
-      } else {
-        router.push(RoutePath.Dashboard)
-      }
+      await navigateTo(redirectTarget.value)
     }
   } finally {
     isLoading.value = false

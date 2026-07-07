@@ -46,7 +46,7 @@ async function fixedLogin(username: string, password: string) {
     start()
     const response = await api.fixedAuth.postFixedAuthLogin({ username, password })
     authStore.value = true
-    teamIdStore.value = response.teamId
+    teamIdStore.value = response.data.teamId
     return true
   }
   catch (err) {
@@ -63,8 +63,7 @@ async function fixedLogin(username: string, password: string) {
   }
 }
 
-async function logout() {
-  const router = useRouter()
+async function logout(options: { redirect?: boolean } = {}) {
   const { start, finish } = useLoadingIndicator()
 
   try {
@@ -72,7 +71,10 @@ async function logout() {
     await api.auth.postAuthLogout()
     authStore.value = false
     userRaw.value = undefined
-    await navigateTo('/login')
+
+    if (options.redirect !== false) {
+      await navigateTo('/login')
+    }
   }
   catch (err) {
     console.error(err)

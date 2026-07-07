@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, watch } from 'vue'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
@@ -8,6 +9,11 @@ import { RoutePath } from '@/types'
 const { signupGuest } = useAuth()
 const router = useRouter()
 const route = useRoute()
+const redirectTarget = computed(() => {
+  return typeof route.query.redirect === 'string'
+    ? route.query.redirect
+    : RoutePath.Dashboard
+})
 
 const formSchema = toTypedSchema(
   z.object({
@@ -19,16 +25,20 @@ const { handleSubmit } = useForm({
   validationSchema: formSchema,
 })
 
+watch(
+  () => useAuth().isAuth.value,
+  (value) => {
+    if (value)
+      navigateTo(redirectTarget.value)
+  },
+  { immediate: true },
+)
+
 const onSubmit = handleSubmit(async (values) => {
   const isSuccess = await signupGuest(values.name)
 
   if (isSuccess) {
-    if (route.query.redirect) {
-      router.push(route.query.redirect as string)
-    }
-    else {
-      router.push(RoutePath.Dashboard)
-    }
+    await navigateTo(redirectTarget.value)
   }
 })
 </script>

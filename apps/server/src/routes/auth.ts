@@ -7,6 +7,7 @@ import {
   checkPassword,
   generateAccessTokens,
   generateGuestEmail,
+  resolveCookieDomain,
   verifyToken,
 } from '@/utils'
 import { sendVerifyEmail } from '@/services/email'
@@ -14,12 +15,61 @@ import middleware from '@/middleware'
 
 const app = new Elysia({ prefix: '/auth' })
 
+function setAuthCookies(
+  cookie: any,
+  domain: string,
+  accessToken: string,
+  refreshToken: string,
+) {
+  const expiredCookie = {
+    value: '',
+    httpOnly: true,
+    path: '/',
+    sameSite: 'lax',
+    secure: false,
+    expires: new Date(0),
+  } as const
+
+  cookie[Cookie.AccessToken].set(expiredCookie)
+  cookie[Cookie.AccessToken].set({
+    value: accessToken,
+    httpOnly: true,
+    path: '/',
+    domain,
+    sameSite: 'lax',
+    secure: false,
+  })
+
+  cookie[Cookie.RefreshToken].set(expiredCookie)
+  cookie[Cookie.RefreshToken].set({
+    value: refreshToken,
+    httpOnly: true,
+    path: '/',
+    domain,
+    sameSite: 'lax',
+    secure: false,
+  })
+}
+
+function clearAuthCookies(cookie: any, domain: string) {
+  const expiredCookie = {
+    value: '',
+    httpOnly: true,
+    path: '/',
+    sameSite: 'lax',
+    secure: false,
+    expires: new Date(0),
+  } as const
+
+  cookie[Cookie.AccessToken].set(expiredCookie)
+  cookie[Cookie.AccessToken].set({ ...expiredCookie, domain })
+  cookie[Cookie.RefreshToken].set(expiredCookie)
+  cookie[Cookie.RefreshToken].set({ ...expiredCookie, domain })
+}
+
 app
   .use(middleware)
   .use(authDTO)
-  /**
-   * Регистрация
-   */
   .post(
     '/signup',
     async ({ body, set }) => {
@@ -49,12 +99,9 @@ app
       },
     },
   )
-  /**
-   * Регистрация гостя
-   */
   .post(
     '/signup-guest',
-    async ({ body, cookie }) => {
+    async ({ body, cookie, request }) => {
       const user = new User(body)
 
       user.password = nanoid(12)
@@ -64,26 +111,8 @@ app
       await user.save()
 
       const { accessToken, refreshToken } = generateAccessTokens(user.id)
-
-      const domain = Bun.env.COOKIE_DOMAIN || 'campusdenayer.be'
-
-      cookie[Cookie.AccessToken].set({
-        value: accessToken,
-        httpOnly: true,
-        path: '/',
-        domain: domain,
-        sameSite: 'lax',
-        secure: false,
-      })
-
-      cookie[Cookie.RefreshToken].set({
-        value: refreshToken,
-        httpOnly: true,
-        path: '/',
-        domain: domain,
-        sameSite: 'lax',
-        secure: false,
-      })
+      const domain = resolveCookieDomain(request)
+      setAuthCookies(cookie, domain, accessToken, refreshToken)
     },
     {
       body: 'signupGuest',
@@ -92,12 +121,9 @@ app
       },
     },
   )
-  /**
-   * Авторизация
-   */
   .post(
     '/signin',
-    async ({ body, set, cookie }) => {
+    async ({ body, set, cookie, request }) => {
       const user = await User.findOne({
         email: {
           $regex: new RegExp(body.email, 'i'),
@@ -121,26 +147,8 @@ app
       }
 
       const { accessToken, refreshToken } = generateAccessTokens(user.id)
-
-      const domain = Bun.env.COOKIE_DOMAIN || 'campusdenayer.be'
-
-      cookie[Cookie.AccessToken].set({
-        value: accessToken,
-        httpOnly: true,
-        path: '/',
-        domain: domain,
-        sameSite: 'lax',
-        secure: false,
-      })
-
-      cookie[Cookie.RefreshToken].set({
-        value: refreshToken,
-        httpOnly: true,
-        path: '/',
-        domain: domain,
-        sameSite: 'lax',
-        secure: false,
-      })
+      const domain = resolveCookieDomain(request)
+      setAuthCookies(cookie, domain, accessToken, refreshToken)
     },
     {
       body: 'signin',
@@ -149,30 +157,10 @@ app
       },
     },
   )
-  /**
-   * Выход
-   */
   .post(
     '/logout',
-    async ({ cookie }) => {
-      const domain = Bun.env.COOKIE_DOMAIN || 'campusdenayer.be'
-
-      cookie[Cookie.AccessToken].set({
-        value: '',
-        httpOnly: true,
-        path: '/',
-        domain: domain,
-        sameSite: 'lax',
-        secure: false,
-      })
-      cookie[Cookie.RefreshToken].set({
-        value: '',
-        httpOnly: true,
-        path: '/',
-        domain: domain,
-        sameSite: 'lax',
-        secure: false,
-      })
+    async ({ cookie, request }) => {
+      clearAuthCookies(cookie, resolveCookieDomain(request))
     },
     {
       detail: {
@@ -180,55 +168,18 @@ app
       },
     },
   )
-  /**
-   * Обновление токена
-   */
   .post(
     '/refresh',
-    async ({ cookie, set }) => {
-      const domain = Bun.env.COOKIE_DOMAIN || 'campusdenayer.be'
+    async ({ cookie, set, request }) => {
+      const domain = resolveCookieDomain(request)
 
       try {
         const decoded = verifyToken(cookie[Cookie.RefreshToken]?.value || '')
-        const { accessToken, refreshToken } = generateAccessTokens(
-          decoded.userId,
-        )
-
-        cookie[Cookie.AccessToken].set({
-          value: accessToken,
-          httpOnly: true,
-          path: '/',
-          domain: domain,
-          sameSite: 'lax',
-          secure: false,
-        })
-
-        cookie[Cookie.RefreshToken].set({
-          value: refreshToken,
-          httpOnly: true,
-          path: '/',
-          domain: domain,
-          sameSite: 'lax',
-          secure: false,
-        })
+        const { accessToken, refreshToken } = generateAccessTokens(decoded.userId)
+        setAuthCookies(cookie, domain, accessToken, refreshToken)
       }
       catch {
-        cookie[Cookie.AccessToken].set({
-          value: '',
-          httpOnly: true,
-          path: '/',
-          domain: domain,
-          sameSite: 'lax',
-          secure: false,
-        })
-        cookie[Cookie.RefreshToken].set({
-          value: '',
-          httpOnly: true,
-          path: '/',
-          domain: domain,
-          sameSite: 'lax',
-          secure: false,
-        })
+        clearAuthCookies(cookie, domain)
 
         set.status = 400
         return { message: 'Invalid token' }
@@ -240,9 +191,6 @@ app
       },
     },
   )
-  /**
-   * Верификация токена
-   */
   .post(
     '/verify',
     async ({ body, set }) => {
@@ -282,7 +230,7 @@ app
         throw new Error('User not found')
       }
 
-      await await sendVerifyEmail({
+      await sendVerifyEmail({
         email: user.email,
         userId: user.id,
         data: {

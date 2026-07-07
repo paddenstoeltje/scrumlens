@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { computed, watch } from 'vue'
 import { repository, version } from '../../../package.json'
 import LogoSvg from '@/assets/svg/scrumlens-logo.svg'
+import { RoutePath } from '@/types'
 
 definePageMeta({
   layout: 'blank',
@@ -9,11 +11,22 @@ definePageMeta({
 const year = new Date().getFullYear()
 
 const { isAuth } = useAuth()
-const router = useRouter()
+const route = useRoute()
 
-if (isAuth.value) {
-  router.push('/')
-}
+const redirectTarget = computed(() => {
+  return typeof route.query.redirect === 'string'
+    ? route.query.redirect
+    : RoutePath.Dashboard
+})
+
+watch(
+  isAuth,
+  (value) => {
+    if (value)
+      navigateTo(redirectTarget.value)
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
