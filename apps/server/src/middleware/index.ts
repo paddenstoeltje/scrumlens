@@ -2,7 +2,7 @@ import Elysia from 'elysia'
 import { Cookie } from '../../../../shared/types'
 import { verifyToken } from '@/utils'
 
-const app = new Elysia()
+const app = new Elysia({ name: 'auth-middleware' })
   .state('userId', '')
   .onBeforeHandle(({ cookie, store }) => {
     try {
@@ -12,7 +12,8 @@ const app = new Elysia()
         store.userId = decoded.userId
       }
     }
-    catch {
+    catch (err) {
+      console.error('verifyToken failed:', err instanceof Error ? err.message : err)
       store.userId = ''
     }
   })
