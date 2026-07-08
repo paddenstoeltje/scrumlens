@@ -68,16 +68,6 @@ function setAuthCookies(
   accessToken: string,
   refreshToken: string,
 ) {
-  const expiredCookie = {
-    value: '',
-    httpOnly: true,
-    path: '/',
-    sameSite: 'lax',
-    secure: false,
-    expires: new Date(0),
-  } as const
-
-  cookie[Cookie.AccessToken].set(expiredCookie)
   cookie[Cookie.AccessToken].set({
     value: accessToken,
     httpOnly: true,
@@ -85,9 +75,9 @@ function setAuthCookies(
     domain,
     sameSite: 'lax',
     secure: false,
+    maxAge: 15 * 60,          // 15 minutes, matches JWT expiry
   })
 
-  cookie[Cookie.RefreshToken].set(expiredCookie)
   cookie[Cookie.RefreshToken].set({
     value: refreshToken,
     httpOnly: true,
@@ -95,6 +85,7 @@ function setAuthCookies(
     domain,
     sameSite: 'lax',
     secure: false,
+    maxAge: 7 * 24 * 60 * 60, // 7 days, matches JWT expiry
   })
 }
 
@@ -161,6 +152,7 @@ app
           email,
           password: '',
           teamId: username,
+          role: username === 'admin' ? 'admin' : 'editor',   
           isActive: true,
           isGuest: false,
         })
