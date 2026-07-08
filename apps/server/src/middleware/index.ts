@@ -30,5 +30,6 @@ const app = new Elysia({ name: 'auth-middleware' })
       })
     },
   }))
+  .as('global')
 
 export default app

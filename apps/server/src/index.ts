@@ -27,7 +27,9 @@ mongoose.connect(Bun.env.MONGO_URL || 'mongodb://localhost:27017/scrumlens')
 const STATIC_PATH = path.join(__dirname, '../../../apps/client/.output/public')
 
 const app = new Elysia()
-
+app.onRequest(({ request }) => {
+  console.log(`[REQ] ${request.method} ${request.url} | cookie: ${request.headers.get('cookie') ?? '(none)'}`)
+})
 app
   .use(
     cors({
