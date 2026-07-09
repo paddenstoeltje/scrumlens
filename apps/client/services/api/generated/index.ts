@@ -135,7 +135,7 @@ export interface BoardResponse {
     voteUp: string[];
     voteDown: string[];
     reactions: {
-      userId: string;
+      voterName: string;
       emoji:
         | "thinking-face"
         | "loudly-crying-face"
@@ -231,6 +231,7 @@ export interface NoteUpdate {
   content?: string;
   voteUp?: boolean;
   voteDown?: boolean;
+  voterName?: string;
   reactions?:
     | "thinking-face"
     | "loudly-crying-face"
@@ -287,6 +288,7 @@ export interface PollAdd {
 
 export interface PollVoteOption {
   optionId: string;
+  voterName: string;
 }
 
 export interface CommentAdd {

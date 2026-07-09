@@ -4,9 +4,8 @@ const { Schema } = mongoose
 
 const reactionSchema = new Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+    voterName: {
+      type: String,
       required: true,
     },
     emoji: {
@@ -48,14 +47,12 @@ export const noteSchema = new Schema(
     },
     voteUp: [
       {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
+        type: String,
       },
     ],
     voteDown: [
       {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
+        type: String,
       },
     ],
     reactions: [reactionSchema],

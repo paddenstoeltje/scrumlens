@@ -3,7 +3,7 @@ import type { BoardResponse } from '~/services/api/generated'
 
 const props = defineProps<Props>()
 
-const { userRaw } = useUser()
+const { hydrateVoterName, voterName } = useVoterName()
 
 interface Props {
   title: string
@@ -11,7 +11,12 @@ interface Props {
   percent: number
 }
 
-const isUserVoted = computed(() => userRaw.value && props.data.vote.includes(userRaw.value._id))
+onMounted(() => {
+  hydrateVoterName()
+})
+
+const isUserVoted = computed(() => Boolean(voterName.value) && props.data.vote.includes(voterName.value))
+const voteNames = computed(() => [...new Set(props.data.vote)])
 </script>
 
 <template>
@@ -35,8 +40,21 @@ const isUserVoted = computed(() => userRaw.value && props.data.vote.includes(use
         }"
       />
     </div>
-    <div class="tabular-nums w-10 shrink-0">
-      {{ percent.toFixed(0) }}%
-    </div>
+    <TooltipProvider :disable-hoverable-content="true">
+      <Tooltip>
+        <TooltipTrigger as="div" class="tabular-nums w-10 shrink-0">
+          {{ percent.toFixed(0) }}%
+        </TooltipTrigger>
+        <TooltipContent v-if="voteNames.length">
+          <div
+            v-for="name in voteNames"
+            :key="name"
+            class="whitespace-nowrap"
+          >
+            {{ name }}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   </div>
 </template>

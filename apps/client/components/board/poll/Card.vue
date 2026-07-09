@@ -10,6 +10,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const { isLockedForMember } = useBoard()
+const { getVoterNameOrPrompt } = useVoterName()
 
 const allVotes = computed(() => props.data.options.reduce((acc, cur) => acc + cur.vote.length, 0))
 
@@ -25,8 +26,15 @@ async function vote(optionId: string) {
   if (isLockedForMember.value) {
     return
   }
+
+  const voterName = getVoterNameOrPrompt()
+
+  if (!voterName) {
+    return
+  }
+
   try {
-    api.polls.patchPollsByIdVote(props.data._id, { optionId })
+    await api.polls.patchPollsByIdVote(props.data._id, { optionId, voterName })
   }
   catch (err) {
     console.error(err)

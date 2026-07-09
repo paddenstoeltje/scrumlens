@@ -9,7 +9,7 @@ export const noteItem = t.Object({
   voteDown: t.Array(t.String()),
   reactions: t.Array(
     t.Object({
-      userId: t.String(),
+      voterName: t.String(),
       emoji: t.Enum({
         thinkingFace: 'thinking-face',
         loudlyCryingFace: 'loudly-crying-face',
@@ -35,6 +35,7 @@ export const notesDTO = new Elysia().model({
     content: t.Optional(t.String()),
     voteUp: t.Optional(t.Boolean()),
     voteDown: t.Optional(t.Boolean()),
+    voterName: t.Optional(t.String({ minLength: 1 })),
     reactions: t.Optional(
       t.Enum({
         thinkingFace: 'thinking-face',

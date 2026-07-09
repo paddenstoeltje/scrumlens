@@ -15,5 +15,6 @@ export const pollsDTO = new Elysia().model({
   }),
   pollVoteOption: t.Object({
     optionId: t.String(),
+    voterName: t.String({ minLength: 1 }),
   }),
 })

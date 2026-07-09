@@ -71,28 +71,35 @@ app
    */
   .patch(
     '/:id',
-    async ({ params, body, store, server }) => {
-      const userId = new Types.ObjectId(store.userId)
+    async ({ params, body, server, set }) => {
       const note = await Note.findById(params.id)
 
       if (!note) {
         throw new Error('Note not found')
       }
 
+      const needsVoterName = Boolean(body.voteUp || body.voteDown || body.reactions)
+      const voterName = body.voterName?.trim()
+
+      if (needsVoterName && !voterName) {
+        set.status = 400
+        throw new Error('Voter name is required')
+      }
+
       if (body.voteUp) {
-        if (note.voteUp.includes(userId)) {
-          note.voteUp = note.voteUp.filter(id => !id.equals(userId))
+        if (note.voteUp.includes(voterName!)) {
+          note.voteUp = note.voteUp.filter(id => id !== voterName)
         }
         else {
-          note.voteUp.push(userId)
+          note.voteUp.push(voterName!)
         }
       }
       else if (body.voteDown) {
-        if (note.voteDown.includes(userId)) {
-          note.voteDown = note.voteDown.filter(id => !id.equals(userId))
+        if (note.voteDown.includes(voterName!)) {
+          note.voteDown = note.voteDown.filter(id => id !== voterName)
         }
         else {
-          note.voteDown.push(userId)
+          note.voteDown.push(voterName!)
         }
       }
 
@@ -102,11 +109,11 @@ app
 
       if (body.reactions) {
         const indexOfReaction = note.reactions.findIndex(
-          r => r.userId.equals(userId) && r.emoji === body.reactions,
+          r => r.voterName === voterName && r.emoji === body.reactions,
         )
         if (indexOfReaction === -1) {
           note.reactions.push({
-            userId,
+            voterName: voterName!,
             emoji: body.reactions,
           })
         }

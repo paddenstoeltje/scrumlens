@@ -70,9 +70,14 @@ app
    */
   .patch(
     '/:id/vote',
-    async ({ body, params, store, set, server }) => {
+    async ({ body, params, set, server }) => {
       const poll = await Poll.findById(params.id)
-      const userId = new Types.ObjectId(store.userId)
+      const voterName = body.voterName.trim()
+
+      if (!voterName) {
+        set.status = 400
+        throw new Error('Voter name is required')
+      }
 
       if (!poll) {
         set.status = 400
@@ -92,20 +97,20 @@ app
         throw new Error('Option not found')
       }
 
-      const lastVoteOption = poll.options.find(i => i.vote.includes(userId))
-      const currentOptionHasVote = option.vote.includes(userId)
+      const lastVoteOption = poll.options.find(i => i.vote.includes(voterName))
+      const currentOptionHasVote = option.vote.includes(voterName)
 
       if (lastVoteOption) {
         await Poll.updateOne(
           { _id: poll._id },
-          { $pull: { [`options.$[option].vote`]: userId } },
+          { $pull: { [`options.$[option].vote`]: voterName } },
           { arrayFilters: [{ 'option._id': lastVoteOption.id }] },
         )
       }
 
       const update = currentOptionHasVote
-        ? { $pull: { [`options.$[option].vote`]: userId } }
-        : { $push: { [`options.$[option].vote`]: userId } }
+        ? { $pull: { [`options.$[option].vote`]: voterName } }
+        : { $push: { [`options.$[option].vote`]: voterName } }
 
       await Poll.updateOne({ _id: poll._id }, update, {
         arrayFilters: [{ 'option._id': body.optionId }],

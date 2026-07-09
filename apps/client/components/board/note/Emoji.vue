@@ -6,7 +6,7 @@ import { SmilePlus } from 'lucide-vue-next'
 
 const note = inject(NOTE_KEY)
 
-const { userRaw } = useUser()
+const { getVoterNameOrPrompt, hydrateVoterName, voterName } = useVoterName()
 const { updateNote } = useBoard()
 
 const emojis: Emoji[] = [
@@ -22,19 +22,37 @@ const isOpen = ref(false)
 
 const uniqEmojis = computed(() => new Set(note?.data.value.reactions.map(i => i.emoji)))
 
+onMounted(() => {
+  hydrateVoterName()
+})
+
 function onReaction(emoji: Emoji['name']) {
   if (!note?.data.value._id)
     return
 
+  const activeVoterName = getVoterNameOrPrompt()
+
+  if (!activeVoterName)
+    return
+
   updateNote(note?.data.value._id, {
     reactions: emoji,
+    voterName: activeVoterName,
   })
 
   isOpen.value = false
 }
 
 function isEmojiBelongsToUser(emoji: string) {
-  return note?.data.value.reactions.some(i => i.emoji === emoji && i.userId === userRaw.value?._id)
+  return note?.data.value.reactions.some(i => i.emoji === emoji && i.voterName === voterName.value)
+}
+
+function reactionVoterNames(emoji: string) {
+  const names = note?.data.value.reactions
+    .filter(i => i.emoji === emoji)
+    .map(i => i.voterName) ?? []
+
+  return [...new Set(names)]
 }
 </script>
 
@@ -73,18 +91,34 @@ function isEmojiBelongsToUser(emoji: string) {
       </PopoverContent>
     </Popover>
     <div class="flex flex-wrap gap-1 relative -top-[2px]">
-      <div
+      <TooltipProvider
         v-for="i in uniqEmojis"
         :key="i"
-        class="border dark:border-slate-600 rounded-full px-1 py-[1px] cursor-pointer"
-        :class="{ 'bg-primary-foreground border-primary dark:border-blue-500': isEmojiBelongsToUser(i!) }"
-        @click="onReaction(i)"
+        :disable-hoverable-content="true"
       >
-        {{ emojis.find(e => e.name === i)?.value }}
-        <span class="tabular-nums">
-          {{ note?.data.value.reactions.filter(r => r.emoji === i).length }}
-        </span>
-      </div>
+        <Tooltip>
+          <TooltipTrigger
+            as="div"
+            class="border dark:border-slate-600 rounded-full px-1 py-[1px] cursor-pointer"
+            :class="{ 'bg-primary-foreground border-primary dark:border-blue-500': isEmojiBelongsToUser(i!) }"
+            @click="onReaction(i)"
+          >
+            {{ emojis.find(e => e.name === i)?.value }}
+            <span class="tabular-nums">
+              {{ note?.data.value.reactions.filter(r => r.emoji === i).length }}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent v-if="reactionVoterNames(i).length">
+            <div
+              v-for="name in reactionVoterNames(i)"
+              :key="`${i}-${name}`"
+              class="whitespace-nowrap"
+            >
+              {{ name }}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   </div>
 </template>

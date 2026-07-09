@@ -6,7 +6,29 @@ import { useBoard } from '@/components/board/composables'
 const note = inject(NOTE_KEY)
 
 const { updateNote } = useBoard()
-const { userRaw } = useUser()
+const { getVoterNameOrPrompt, hydrateVoterName, voterName } = useVoterName()
+
+onMounted(() => {
+  hydrateVoterName()
+})
+
+function voteUp() {
+  const activeVoterName = getVoterNameOrPrompt()
+
+  if (!activeVoterName)
+    return
+
+  updateNote(note?.data.value._id!, { voteUp: true, voterName: activeVoterName })
+}
+
+function voteDown() {
+  const activeVoterName = getVoterNameOrPrompt()
+
+  if (!activeVoterName)
+    return
+
+  updateNote(note?.data.value._id!, { voteDown: true, voterName: activeVoterName })
+}
 </script>
 
 <template>
@@ -15,11 +37,11 @@ const { userRaw } = useUser()
       size="xs"
       variant="ghost"
       class="flex gap-1"
-      @click="updateNote(note?.data.value._id!, { voteUp: true })"
+      @click="voteUp"
     >
       <ThumbsUp
         class="w-3.5 h-3.5"
-        :class="{ 'text-primary': note?.data.value.voteUp.includes(userRaw?._id || '') }"
+        :class="{ 'text-primary': note?.data.value.voteUp.includes(voterName || '') }"
       />
       <span class="tabular-nums">
         {{ note?.data.value.voteUp.length || 0 }}
@@ -28,12 +50,12 @@ const { userRaw } = useUser()
     <Button
       size="xs"
       variant="ghost"
-      @click="updateNote(note?.data.value._id!, { voteDown: true })"
+      @click="voteDown"
     >
       <div class="flex items-center gap-1">
         <ThumbsDown
           class="w-3.5 h-3.5"
-          :class="{ 'text-red-500': note?.data.value.voteDown.includes(userRaw?._id || '') }"
+          :class="{ 'text-red-500': note?.data.value.voteDown.includes(voterName || '') }"
         />
         <span class="tabular-nums">
           {{ note?.data.value.voteDown.length || 0 }}

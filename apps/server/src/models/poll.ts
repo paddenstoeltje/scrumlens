@@ -9,8 +9,7 @@ const optionSchema = new Schema({
   },
   vote: [
     {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
     },
   ],
 })

@@ -3,8 +3,10 @@ import { useBoard, useWebSocket } from '@/components/board/composables'
 
 const route = useRoute()
 const { getBoardById, connectedUserIds } = useBoard()
+const { hydrateVoterName } = useVoterName()
 
 const ws = useWebSocket(`boards/${route.params.id}`)
+hydrateVoterName()
 await getBoardById(route.params.id as string)
 
 onBeforeRouteLeave(async () => {
