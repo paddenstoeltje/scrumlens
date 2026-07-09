@@ -99,7 +99,7 @@ export function useWebSocket(url: string) {
     ws.close()
   }
 
-  wsUrl.value = isDev ? `${websocketUrl}/${url}` : `/ws/${url}`
+  wsUrl.value = isDev ? `${websocketUrl}/${url}` : `/api/${url}`
   connect()
 
   return ws

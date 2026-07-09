@@ -77,7 +77,6 @@ const onLogout = async (): Promise<void> => {
           <Input
             type="text"
             v-bind="componentField"
-            placeholder="Enter your username"
           />
         </FormControl>
         <FormMessage />
