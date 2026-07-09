@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import {
+  KeyRound,
+  LoaderCircle,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from 'lucide-vue-next'
 import { api } from '~/services/api'
 import type { AdminUsersResponse, UsersMeResponse } from '~/services/api/generated'
 import { useAuth } from '@/composables/useAuth'
@@ -34,7 +42,6 @@ const filterTeamId = ref('')
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteConfirm = ref(false)
-const showPasswordReset = ref(false)
 const selectedUser = ref<UsersMeResponse | null>(null)
 
 // Form data
@@ -72,9 +79,26 @@ const roleLabels: Record<string, string> = {
 }
 
 const roleColors: Record<string, string> = {
-  admin: 'bg-red-100 text-red-800',
-  viewer: 'bg-green-100 text-green-800',
-  editor: 'bg-blue-100 text-blue-800',
+  admin: 'border-red-200 bg-red-100 text-red-800',
+  viewer: 'border-green-200 bg-green-100 text-green-800',
+  editor: 'border-blue-200 bg-blue-100 text-blue-800',
+}
+
+function getInitials(name: string) {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+
+  if (parts.length === 0) return 'U'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+}
+
+function formatTeam(teamId?: string) {
+  if (!teamId) return 'No Team'
+  return teamId.replace('team', 'Team ')
 }
 
 // Fetch users
@@ -125,8 +149,8 @@ async function createUser() {
     const payload = {
       ...formData.value,
       teamId: formData.value.teamId === 'none' ? undefined : formData.value.teamId,
-    }    
-    await api.adminUsers.postAdminUsers(formData.value)
+    }
+    await api.adminUsers.postAdminUsers(payload)
     showCreateModal.value = false
     toast({
       title: 'Success',
@@ -221,7 +245,7 @@ async function deleteUser() {
 // Reset password
 function openPasswordReset(user: UsersMeResponse) {
   selectedUser.value = user
-  showPasswordReset.value = true
+  resetPassword()
 }
 
 async function resetPassword() {
@@ -234,7 +258,6 @@ async function resetPassword() {
     await api.adminUsers.postAdminUsersByIdResetPassword(selectedUser.value._id, {
       newPassword,
     })
-    showPasswordReset.value = false
     toast({
       title: 'Success',
       description: 'Password reset successfully.',
@@ -298,22 +321,30 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto p-6">
+  <div class="container mx-auto max-w-7xl space-y-6 p-4 md:p-6">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 class="text-3xl font-bold">User Management</h1>
-        <p class="text-muted-foreground mt-1">Manage users for all teams</p>
+        <h1 class="text-3xl font-bold tracking-tight">User Management</h1>
+        <p class="mt-1 text-muted-foreground">
+          Manage users across all teams with role and status controls.
+        </p>
       </div>
-      <Button @click="showCreateModal = true; resetForm()">
-        <PlusIcon class="w-4 h-4 mr-2" />
+      <Button class="gap-2" @click="showCreateModal = true; resetForm()">
+        <Plus class="h-4 w-4" />
         Add User
       </Button>
     </div>
 
     <!-- Filters -->
-    <Card class="mb-6">
-      <CardContent class="pt-6">
+    <Card class="border-muted/50 bg-gradient-to-br from-background to-muted/20">
+      <CardHeader class="pb-4">
+        <CardTitle class="text-lg">Filters</CardTitle>
+        <CardDescription>
+          Search and narrow the list by role or team.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Input
             v-model="searchQuery"
@@ -342,7 +373,7 @@ onMounted(() => {
               </SelectItem>
             </SelectContent>
           </Select>
-          <div class="flex gap-2">
+          <div class="flex gap-2 md:justify-end">
             <Button variant="outline" @click="applyFilter">Apply</Button>
             <Button variant="ghost" @click="clearFilters">Clear</Button>
           </div>
@@ -352,11 +383,24 @@ onMounted(() => {
 
     <!-- Users Table -->
     <Card>
-      <CardContent class="pt-6">
-        <div v-if="loading" class="flex justify-center py-8">
-          <Loader2Icon class="w-6 h-6 animate-spin" />
+      <CardHeader class="pb-3">
+        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle class="text-lg">Users</CardTitle>
+            <CardDescription>
+              {{ total }} total users{{ totalPages > 1 ? ` across ${totalPages} pages` : '' }}
+            </CardDescription>
+          </div>
+          <Badge variant="outline" class="w-fit">
+            Page {{ currentPage }}
+          </Badge>
         </div>
-        
+      </CardHeader>
+      <CardContent>
+        <div v-if="loading" class="flex justify-center py-8">
+          <LoaderCircle class="h-6 w-6 animate-spin" />
+        </div>
+
         <Table v-else>
           <TableHeader>
             <TableRow>
@@ -375,38 +419,53 @@ onMounted(() => {
               </TableCell>
             </TableRow>
             <TableRow v-for="user in users" :key="user._id">
-              <TableCell class="font-medium">{{ user.name }}</TableCell>
-              <TableCell>{{ user.email }}</TableCell>
               <TableCell>
-                <span v-if="user.teamId" class="badge">{{ user.teamId.replace('team', 'T') }}</span>
-                <span v-else class="text-muted-foreground">-</span>
+                <div class="flex items-center gap-3">
+                  <div class="flex h-9 w-9 items-center justify-center rounded-full border bg-muted text-xs font-semibold">
+                    {{ getInitials(user.name) }}
+                  </div>
+                  <div class="flex min-w-0 flex-col">
+                    <span class="truncate font-medium">{{ user.name }}</span>
+                    <span class="truncate text-xs text-muted-foreground">{{ user._id }}</span>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell class="font-mono text-xs sm:text-sm">{{ user.email }}</TableCell>
+              <TableCell>
+                <Badge variant="outline">{{ formatTeam(user.teamId) }}</Badge>
               </TableCell>
               <TableCell>
-                <Badge :class="roleColors[user.role || 'editor']">
+                <Badge :class="roleColors[user.role || 'editor']" variant="outline">
                   {{ roleLabels[user.role || 'editor'] }}
                 </Badge>
               </TableCell>
               <TableCell>
-                <Badge :class="user.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'">
+                <Badge
+                  variant="outline"
+                  :class="user.isActive ? 'border-green-200 bg-green-100 text-green-800' : 'border-gray-200 bg-gray-100 text-gray-700'"
+                >
                   {{ user.isActive ? 'Active' : 'Inactive' }}
                 </Badge>
               </TableCell>
               <TableCell class="text-right">
-                <div class="flex justify-end gap-2">
-                  <Button variant="ghost" size="sm" @click="openEditModal(user)">
-                    <PencilIcon class="w-4 h-4" />
+                <div class="flex justify-end gap-1">
+                  <Button variant="ghost" size="sm" class="h-8 gap-1 px-2" @click="openEditModal(user)">
+                    <Pencil class="h-4 w-4" />
+                    <span class="hidden lg:inline">Edit</span>
                   </Button>
-                  <Button variant="ghost" size="sm" @click="openPasswordReset(user)">
-                    <KeyIcon class="w-4 h-4" />
+                  <Button variant="ghost" size="sm" class="h-8 gap-1 px-2" @click="openPasswordReset(user)">
+                    <KeyRound class="h-4 w-4" />
+                    <span class="hidden lg:inline">Reset</span>
                   </Button>
                   <Button 
                     v-if="userRaw?._id !== user._id" 
                     variant="ghost" 
                     size="sm" 
-                    class="text-destructive hover:text-destructive"
+                    class="h-8 gap-1 px-2 text-destructive hover:text-destructive"
                     @click="openDeleteConfirm(user)"
                   >
-                    <TrashIcon class="w-4 h-4" />
+                    <Trash2 class="h-4 w-4" />
+                    <span class="hidden lg:inline">Delete</span>
                   </Button>
                 </div>
               </TableCell>
@@ -459,7 +518,7 @@ onMounted(() => {
             <div class="flex gap-2">
               <Input v-model="formData.password" type="password" placeholder="Enter password..." />
               <Button variant="outline" @click="applyGeneratedPassword" title="Generate random password">
-                <RefreshCwIcon class="w-4 h-4" />
+                <RefreshCw class="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -575,14 +634,3 @@ onMounted(() => {
     </Dialog>
   </div>
 </template>
-
-<style scoped>
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-}
-</style>
