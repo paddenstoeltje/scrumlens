@@ -57,7 +57,7 @@ const editFormData = ref({
 
 // Team options for dropdown
 const teamOptions = computed(() => {
-  const options = [{ value: '', label: 'No Team' }]
+  const options = [{ value: 'none', label: 'No Team' }]
   for (let i = 1; i <= 24; i++) {
     options.push({ value: `team${i}`, label: `Team ${i}` })
   }
@@ -86,13 +86,14 @@ async function fetchUsers() {
       page: String(currentPage.value),
     }
     if (searchQuery.value) query.search = searchQuery.value
-    if (filterRole.value) query.role = filterRole.value
-    if (filterTeamId.value) query.teamId = filterTeamId.value
+    if (filterRole.value && filterRole.value !== 'all') query.role = filterRole.value
+    if (filterTeamId.value && filterTeamId.value !== 'all') query.teamId = filterTeamId.value
 
-    const response = await api.adminUsers.getAdminUsers(query) as AdminUsersResponse
-    users.value = response.users
-    total.value = response.pagination.total
-    totalPages.value = response.pagination.pages
+    const response = await api.adminUsers.getAdminUsers(query)
+    const data = response.data as AdminUsersResponse
+    users.value = data.users
+    total.value = data.pagination.total
+    totalPages.value = data.pagination.pages
   } catch (error) {
     console.error('Failed to fetch users:', error)
     toast({
@@ -121,6 +122,10 @@ function setPage(page: number) {
 async function createUser() {
   loading.value = true
   try {
+    const payload = {
+      ...formData.value,
+      teamId: formData.value.teamId === 'none' ? undefined : formData.value.teamId,
+    }    
     await api.adminUsers.postAdminUsers(formData.value)
     showCreateModal.value = false
     toast({
@@ -147,7 +152,7 @@ function openEditModal(user: UsersMeResponse) {
     name: user.name,
     email: user.email,
     password: '',
-    teamId: user.teamId || 'team1',
+    teamId: user.teamId || 'none',
     role: (user.role as 'admin' | 'viewer' | 'editor') || 'editor',
     isActive: user.isActive,
   }
@@ -158,7 +163,10 @@ async function updateUser() {
   if (!selectedUser.value) return
   loading.value = true
   try {
-    const updateData: any = { ...editFormData.value }
+    const updateData: any = {
+      ...editFormData.value,
+      teamId: editFormData.value.teamId === 'none' ? undefined : editFormData.value.teamId,
+    }
     // Don't send empty password
     if (!updateData.password) delete updateData.password
     
@@ -264,7 +272,7 @@ function resetForm() {
     name: '',
     email: '',
     password: '',
-    teamId: 'team1',
+    teamId: 'none',
     role: 'editor',
   }
 }
@@ -278,8 +286,8 @@ function applyFilter() {
 // Clear filters
 function clearFilters() {
   searchQuery.value = ''
-  filterRole.value = ''
-  filterTeamId.value = ''
+  filterRole.value = 'all'
+  filterTeamId.value = 'all'
   currentPage.value = 1
   fetchUsers()
 }
@@ -317,7 +325,7 @@ onMounted(() => {
               <SelectValue placeholder="Filter by role" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Roles</SelectItem>
+              <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="viewer">Viewer</SelectItem>
               <SelectItem value="editor">Editor</SelectItem>
@@ -328,7 +336,7 @@ onMounted(() => {
               <SelectValue placeholder="Filter by team" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Teams</SelectItem>
+              <SelectItem value="all">All Teams</SelectItem>
               <SelectItem v-for="team in teamOptions.filter(t => t.value)" :key="team.value" :value="team.value">
                 {{ team.label }}
               </SelectItem>
