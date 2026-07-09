@@ -12,5 +12,6 @@ export const usersDTO = new Elysia().model({
     email: t.String(),
     isActive: t.Boolean(),
     isGuest: t.Boolean(),
+    role: t.String(),
   }),
 })

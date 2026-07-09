@@ -8,16 +8,12 @@ const app = new Elysia({ prefix: '/users' })
 app
   .use(middleware)
   .use(usersDTO)
-  /**
-   * Получение данных пользователя
-   */
   .get(
     '/me',
     async ({ store }) => {
       const user = await User.findById(store.userId).select(
-        '_id name email isActive isGuest ',
+        '_id name email isActive isGuest role',
       )
-
       return JSON.parse(JSON.stringify(user))
     },
     {
@@ -28,9 +24,7 @@ app
       },
     },
   )
-  /**
-   * Обновление данных пользователя
-   */
+
   .patch(
     '/me',
     async ({ store, body, set }) => {
