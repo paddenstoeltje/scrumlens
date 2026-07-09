@@ -58,7 +58,6 @@ provide(NOTE_KEY, {
       data-board-note-actions
       class="flex gap-2 text-sm justify-between text-muted-foreground mt-3"
     >
-      <BoardNoteEmoji />
       <div class="flex items-baseline">
         <BoardNoteCommentsButton @click="isShowComments = !isShowComments" />
         <BoardNoteVote />

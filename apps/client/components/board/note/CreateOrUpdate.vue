@@ -3,7 +3,6 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import { useFocus, useMagicKeys } from '@vueuse/core'
-import { Paperclip } from 'lucide-vue-next'
 import { vOnClickOutside } from '@vueuse/components'
 import { useBoard } from '@/components/board/composables'
 
@@ -25,12 +24,8 @@ const emit = defineEmits<Emits>()
 
 const formRef = ref<HTMLFormElement>()
 const textareaRef = ref()
-const ignoreElRef = ref()
-
-const gif = ref()
 
 const isPending = ref(false)
-const isOpenGifPopper = ref(false)
 
 const { focused } = useFocus(textareaRef)
 const { addNote, updateNote } = useBoard()
@@ -57,11 +52,6 @@ const shortcutText = computed(() => {
   return props.edit ? `${keys} for update` : `${keys} for add note`
 })
 
-function onAddGif(url: string) {
-  gif.value = url
-  isOpenGifPopper.value = false
-}
-
 const onSubmit = handleSubmit(async (values) => {
   try {
     isPending.value = true
@@ -69,11 +59,8 @@ const onSubmit = handleSubmit(async (values) => {
     if (!props.edit && props.index !== undefined) {
       await addNote({
         content: values.text.trim(),
-        gif: gif.value,
         columnIndex: String(props.index),
       })
-
-      gif.value = ''
 
       resetForm()
       scrollIntoView()
@@ -120,10 +107,7 @@ function scrollIntoView() {
   })
 }
 
-const onClickOutsideHandler = [
-  () => emit('close'),
-  { ignore: [ignoreElRef] },
-]
+const onClickOutsideHandler = () => emit('close')
 
 // Компонент может быть создан при открытии из popper (dropdown menu).
 // Поскольку radix использует focus guard c установкой aria-hidden="true",
@@ -178,45 +162,16 @@ watchEffect(() => {
           />
         </FormControl>
         <FormMessage />
-        <img
-          v-if="gif"
-          class="rounded-md"
-          :src="gif"
-        >
       </FormItem>
     </FormField>
     <FormItem>
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-start">
         <UiText
           size="sm"
           class="text-muted-foreground"
         >
           {{ shortcutText }}
         </UiText>
-        <div class="flex justify-end text-muted-foreground">
-          <Popover v-model:open="isOpenGifPopper">
-            <PopoverTrigger as-child>
-              <div class="flex items-center">
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  @click.prevent
-                >
-                  <Paperclip class="w-4 h-4" />
-                </Button>
-              </div>
-            </PopoverTrigger>
-            <PopoverContent
-              ref="ignoreElRef"
-              class="w-[300px] p-2"
-            >
-              <BoardNoteGifSearch
-                ref="ignoreElRef"
-                @add="onAddGif"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
       </div>
       <div class="flex gap-2">
         <Button
