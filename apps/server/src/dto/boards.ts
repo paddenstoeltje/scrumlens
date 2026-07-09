@@ -36,6 +36,11 @@ export const boardItem = t.Object({
   updatedAt: t.String(),
 })
 
+export const boardListItem = t.Object({
+  ...boardItem.properties,
+  ownerName: t.String(),
+})
+
 export const boardItemExtended = t.Object({
   ...boardItem.properties,
   notes: t.Array(noteItem),
@@ -119,7 +124,7 @@ export const boardsDTO = new Elysia().model({
   boardsResponse: t.Object({
     count: t.Number(),
     own: t.Number(),
-    items: t.Array(boardItem),
+    items: t.Array(boardListItem),
   }),
   boardSendInvite: t.Object({
     email: t.String(),

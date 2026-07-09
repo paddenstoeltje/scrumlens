@@ -19,6 +19,18 @@ const connections = new Set<{
   wsId: string
 }>()
 
+async function withOwnerName(boards: any[]) {
+  const ownerIds = [...new Set(boards.map(board => board.userId.toString()))]
+  const owners = await User.find({ _id: { $in: ownerIds } }).select('_id name').lean()
+
+  const ownerMap = new Map(owners.map((owner: any) => [owner._id.toString(), owner.name]))
+
+  return boards.map(board => ({
+    ...board,
+    ownerName: ownerMap.get(board.userId.toString()) ?? 'Unknown',
+  }))
+}
+
 function userSyncData(boardId: string) {
   return {
     type: 'user:sync',
@@ -113,7 +125,7 @@ app
    */
   .post(
     '/:id/invite',
-    async ({ params, body, set }) => {
+    async ({ params, body, set, store }) => {
       const emailList = body.email.split(',').map(i => i.trim())
 
       const board = await Board.findById(params.id)
@@ -121,6 +133,20 @@ app
       if (!board) {
         set.status = 400
         throw new Error('Board not found')
+      }
+
+      const user = await User.findById(store.userId)
+
+      if (!user) {
+        set.status = 400
+        throw new Error('User not found')
+      }
+
+      const isAdmin = user.teamId === 'admin'
+
+      if (!board.userId.equals(user._id) && !isAdmin) {
+        set.status = 403
+        throw new Error('You are not allowed to invite users to this board')
       }
 
       const users = await User.find({ email: { $in: emailList } })
@@ -200,7 +226,7 @@ app
     },
   )
   /**
-   * Получение списка досок (team-specific)
+   * Получение списка досок
    */
   .get(
     '/',
@@ -229,13 +255,9 @@ app
 
         ownCount = await Board.countDocuments({ userId: store.userId })
       } else {
-        // Regular users see only their team's boards
+        // Regular users see only their own boards
         boards = await Board.find({
-          participants: {
-            $elemMatch: {
-              userId: store.userId,
-            },
-          },
+          userId: store.userId,
           title: new RegExp(query.search ?? '', 'gi'),
         })
           .limit(limit)
@@ -246,10 +268,12 @@ app
         ownCount = await Board.countDocuments({ userId: store.userId })
       }
 
+      const boardsWithOwner = await withOwnerName(boards as any[])
+
       return {
-        count: boards.length,
+        count: boardsWithOwner.length,
         own: ownCount,
-        items: JSON.parse(JSON.stringify(boards)),
+        items: JSON.parse(JSON.stringify(boardsWithOwner)),
       } as any
     },
     {
@@ -290,20 +314,12 @@ app
         .sort({ [sort]: order })
         .lean()
 
-      // Populate team info for each board
-      const populatedBoards = []
-      for (const board of boards as any[]) {
-        const boardUser = await User.findById(board.userId)
-        populatedBoards.push({
-          ...board,
-          teamId: boardUser?.teamId || 'unknown',
-        })
-      }
+      const boardsWithOwner = await withOwnerName(boards as any[])
 
       return {
-        count: populatedBoards.length,
+        count: boardsWithOwner.length,
         own: 0,
-        items: JSON.parse(JSON.stringify(populatedBoards)),
+        items: JSON.parse(JSON.stringify(boardsWithOwner)),
       } as any
     },
     {
@@ -383,13 +399,29 @@ app
    */
   .patch(
     '/:id',
-    async ({ params, body, set, server }) => {
-      const board = await Board.findByIdAndUpdate(params.id, body)
+    async ({ params, body, set, server, store }) => {
+      const user = await User.findById(store.userId)
+
+      if (!user) {
+        set.status = 400
+        throw new Error('User not found')
+      }
+
+      const board = await Board.findById(params.id)
 
       if (!board) {
         set.status = 400
         throw new Error('Board not found')
       }
+
+      const isAdmin = user.teamId === 'admin'
+
+      if (!board.userId.equals(user._id) && !isAdmin) {
+        set.status = 403
+        throw new Error('You are not allowed to update this board')
+      }
+
+      await Board.findByIdAndUpdate(params.id, body)
 
       const updatedBoard = await Board.findById(params.id)
       const data = await getExtendedBoardData(updatedBoard!)
@@ -429,7 +461,9 @@ app
         throw new Error('Board not found')
       }
 
-      if (!board.userId.equals(user._id)) {
+      const isAdmin = user.teamId === 'admin'
+
+      if (!board.userId.equals(user._id) && !isAdmin) {
         set.status = 403
         throw new Error('You are not allowed to delete this board')
       }

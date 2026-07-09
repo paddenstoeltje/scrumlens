@@ -22,6 +22,30 @@ const props = defineProps<Props>()
 const { userRaw } = useUser()
 
 const isUserOwner = computed(() => userRaw.value?._id === props.data.userId)
+const isSystemAdmin = computed(() => userRaw.value?.teamId === 'admin')
+const canManageBoard = computed(() => isUserOwner.value || isSystemAdmin.value)
+
+const ownerLabel = computed(() => {
+  if (props.data.ownerName)
+    return props.data.ownerName
+
+  if (isUserOwner.value)
+    return userRaw.value?.name
+
+  return undefined
+})
+
+const boardTitle = computed(() => {
+  const title = props.data.title
+  const owner = ownerLabel.value?.trim()
+
+  if (!owner)
+    return title
+
+  const prefixedTitle = `${owner}: ${title}`
+
+  return title.startsWith(`${owner}: `) ? title : prefixedTitle
+})
 </script>
 
 <template>
@@ -30,7 +54,7 @@ const isUserOwner = computed(() => userRaw.value?._id === props.data.userId)
     class="rounded-lg border p-3 relative hover:border-primary cursor-pointer transition-all"
   >
     <DashboardCardActions
-      v-if="isUserOwner"
+      v-if="canManageBoard"
       :data="data"
       class="absolute top-2 right-2"
     />
@@ -39,7 +63,7 @@ const isUserOwner = computed(() => userRaw.value?._id === props.data.userId)
       size="sm"
       class="mb-0 mt-1"
     >
-      {{ data.title }}
+      {{ boardTitle }}
     </UiHeading>
 
     <div class="flex items-center gap-2 mt-3">

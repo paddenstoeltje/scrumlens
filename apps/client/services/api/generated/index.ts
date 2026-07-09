@@ -184,6 +184,7 @@ export interface BoardsResponse {
     _id: string;
     title: string;
     userId: string;
+    ownerName: string;
     participants: {
       role: "admin" | "member";
       userId: string;
