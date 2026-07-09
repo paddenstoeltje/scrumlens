@@ -44,12 +44,30 @@ async function fixedLogin(username: string, password: string) {
 
   try {
     start()
-    const response = await api.fixedAuth.postFixedAuthLogin({ username, password })
+    const response = await api.fixedAuth.postFixedAuthLogin({
+      username: username.trim(),
+      password: password.trim(),
+    })
     authStore.value = true
     teamIdStore.value = response.data.teamId
     return true
   }
   catch (err) {
+    // If login request fails but auth cookies/session are already valid,
+    // avoid showing a false "invalid login" toast.
+    try {
+      const { data } = await api.users.getUsersMe()
+      if (data) {
+        authStore.value = true
+        teamIdStore.value = data.teamId || null
+        userRaw.value = data
+        return true
+      }
+    }
+    catch (fallbackErr) {
+      console.error(fallbackErr)
+    }
+
     console.error(err)
     toast({
       title: 'Something went wrong.',

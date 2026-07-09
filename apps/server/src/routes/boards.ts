@@ -147,7 +147,7 @@ app
         throw new Error('User not found')
       }
 
-      const isAdmin = user.teamId === 'admin'
+      const isAdmin = user.role === 'admin'
 
       if (!board.userId.equals(user._id) && !isAdmin) {
         set.status = 403
@@ -243,7 +243,7 @@ app
 
       // Check if user is admin
       const user = await User.findById(store.userId)
-      const isAdmin = user?.teamId === 'admin'
+      const isAdmin = user?.role === 'admin'
 
       const searchTerm = (query.search ?? '').trim()
       const searchRegex = new RegExp(searchTerm, 'gi')
@@ -325,7 +325,7 @@ app
       // Check if user is admin
       const user = await User.findById(store.userId)
 
-      if (!user || user.teamId !== 'admin') {
+      if (!user || user.role !== 'admin') {
         return {
           count: 0,
           own: 0,
@@ -372,7 +372,7 @@ app
 
       // Check if user is admin (admin can access all boards)
       const user = await User.findById(store.userId)
-      const isAdmin = user?.teamId === 'admin'
+      const isAdmin = user?.role === 'admin'
 
       const isUserParticipant = board.participants.some(i =>
         i.userId?.equals(store.userId),
@@ -439,7 +439,7 @@ app
         throw new Error('Board not found')
       }
 
-      const isAdmin = user.teamId === 'admin'
+      const isAdmin = user.role === 'admin'
 
       if (!board.userId.equals(user._id) && !isAdmin) {
         set.status = 403
@@ -486,7 +486,7 @@ app
         throw new Error('Board not found')
       }
 
-      const isAdmin = user.teamId === 'admin'
+      const isAdmin = user.role === 'admin'
 
       if (!board.userId.equals(user._id) && !isAdmin) {
         set.status = 403

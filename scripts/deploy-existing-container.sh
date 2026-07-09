@@ -12,6 +12,10 @@ echo "  Scrumlens Deployment (Existing Container)"
 echo "  Using Native MongoDB"
 echo "========================================="
 
+echo ""
+echo "NOTE: Current authentication model is team-login only."
+echo "Personal signup/signin endpoints are disabled."
+
 # -----------------------------------------
 # Helper function to install packages
 # -----------------------------------------
@@ -677,10 +681,10 @@ else
 fi
 
 # -----------------------------------------
-# 6. Generate/Verify Passwords
+# 6. Optional: Generate Legacy Password File
 # -----------------------------------------
 echo ""
-echo "[6/7] Setting up team passwords..."
+echo "[6/7] Optional legacy passwords.md generation..."
 
 PASSWORDS_FILE="$APP_DIR/passwords.md"
 
@@ -692,7 +696,7 @@ if [ ! -f "$PASSWORDS_FILE" ]; then
                 cp /tmp/scrumlens/passwords.md "$PASSWORDS_FILE"
                 echo "  Copied passwords from /tmp/scrumlens/passwords.md"
             else
-                echo "  WARNING: Could not generate passwords. Create passwords.md manually."
+                echo "  WARNING: Could not generate passwords. This is optional for current setup."
             fi
         else
             echo "  Generated new passwords at $PASSWORDS_FILE"
@@ -701,15 +705,8 @@ if [ ! -f "$PASSWORDS_FILE" ]; then
         cp /tmp/scrumlens/passwords.md "$PASSWORDS_FILE"
         echo "  Copied passwords from /tmp/scrumlens/passwords.md"
     else
-        echo "  WARNING: No password generation script found."
-        echo "  Please copy generatePasswords.mjs and run:"
-        echo "    node generatePasswords.mjs > $PASSWORDS_FILE"
-        echo ""
-        echo "  Or create passwords.md manually with this format:"
-        echo "    # Scrumlens Team Passwords"
-        echo "    | admin | <password> |"
-        echo "    | team1 | <password> |"
-        echo "    ..."
+        echo "  NOTE: No legacy password file generated (this is optional)."
+        echo "  Team login credentials are managed in admin panel /admin-users."
     fi
 else
     echo "  Passwords file already exists at $PASSWORDS_FILE"
@@ -799,9 +796,10 @@ echo "   nano $ENV_FILE"
 echo "   Make sure CLIENT_URL matches how students access the app."
 echo ""
 
-echo "2. Seed database with admin and team users (first time only):"
-echo "   cd $APP_DIR/apps/server && $BUN_PATH run scripts/setupUsers.ts"
-echo "   This creates admin + team1-team24 users with random passwords."
+echo "2. Bootstrap at least one admin team-login account (first time only):"
+echo "   Option A (legacy helper): cd $APP_DIR/apps/server && $BUN_PATH run scripts/setupUsers.ts"
+echo "   Option B (recommended): create admin team-login directly in MongoDB or admin API."
+echo "   Then manage team logins through /admin-users."
 echo ""
 
 echo "3. Start the application:"
@@ -832,7 +830,7 @@ echo "   Swagger docs: http://$LOCAL_IP:3000/swagger"
 echo ""
 
 if [ -f "$PASSWORDS_FILE" ]; then
-    echo "8. Team credentials are in: $PASSWORDS_FILE"
+    echo "8. Optional legacy credentials file: $PASSWORDS_FILE"
     echo "   View with: cat $PASSWORDS_FILE"
 fi
 echo ""
