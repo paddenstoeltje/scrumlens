@@ -2,6 +2,7 @@ import { useDebounceFn } from '@vueuse/core'
 import { api, getErrorData } from '~/services/api'
 import type {
   BoardAdd,
+  BoardsQuery,
   BoardResponse,
   BoardUpdate,
   BoardsResponse,
@@ -53,9 +54,9 @@ const connectedUsers = computed(() => {
     .map(p => ({ id: p.userId, name: p.name, acronym: toAcronym(p.name) }))
 })
 
-async function getBoards() {
+async function getBoards(query?: BoardsQuery) {
   try {
-    const { data } = await api.boards.getBoards()
+    const { data } = await api.boards.getBoards(query)
     boardsRaw.value = data
   }
   catch (err) {

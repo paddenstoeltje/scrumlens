@@ -3,7 +3,7 @@
  * Provides start/finish methods to control the Nuxt loading indicator
  */
 
-export function useLoadingIndicator() {
+export function useAppLoadingIndicator() {
   let timer: ReturnType<typeof setTimeout> | null = null
 
   return {

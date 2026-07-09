@@ -1,16 +1,12 @@
 import Elysia from 'elysia'
-import { nanoid } from 'nanoid'
 import { Cookie } from '../../../../shared/types'
 import { authDTO } from '@/dto/auth'
 import { User } from '@/models/user'
 import {
-  checkPassword,
   generateAccessTokens,
-  generateGuestEmail,
   resolveCookieDomain,
   verifyToken,
 } from '@/utils'
-import { sendVerifyEmail } from '@/services/email'
 import middleware from '@/middleware'
 
 const app = new Elysia({ prefix: '/auth' })
@@ -72,25 +68,9 @@ app
   .use(authDTO)
   .post(
     '/signup',
-    async ({ body, set }) => {
-      body.email = body.email.toLowerCase()
-
-      try {
-        const user = new User(body)
-        await user.save()
-
-        await sendVerifyEmail({
-          email: user.email,
-          userId: user.id,
-          data: {
-            username: user.name,
-          },
-        })
-      }
-      catch (err) {
-        console.error(err)
-        set.status = 400
-      }
+    async ({ set }) => {
+      set.status = 410
+      throw new Error('Personal signup is disabled. Use team login.')
     },
     {
       body: 'signup',
@@ -101,18 +81,9 @@ app
   )
   .post(
     '/signup-guest',
-    async ({ body, cookie, request }) => {
-      const user = new User(body)
-
-      user.password = nanoid(12)
-      user.email = generateGuestEmail()
-      user.isGuest = true
-
-      await user.save()
-
-      const { accessToken, refreshToken } = generateAccessTokens(user.id)
-      const domain = resolveCookieDomain(request)
-      setAuthCookies(cookie, domain, accessToken, refreshToken)
+    async ({ set }) => {
+      set.status = 410
+      throw new Error('Guest signup is disabled. Use team login.')
     },
     {
       body: 'signupGuest',
@@ -123,32 +94,9 @@ app
   )
   .post(
     '/signin',
-    async ({ body, set, cookie, request }) => {
-      const user = await User.findOne({
-        email: {
-          $regex: new RegExp(body.email, 'i'),
-        },
-      })
-
-      if (!user) {
-        set.status = 400
-        throw new Error('Invalid login or password')
-      }
-
-      const isValidPassword = checkPassword(
-        body.password,
-        user.password,
-        user.salt!,
-      )
-
-      if (!isValidPassword) {
-        set.status = 400
-        throw new Error('Invalid login or password')
-      }
-
-      const { accessToken, refreshToken } = generateAccessTokens(user.id)
-      const domain = resolveCookieDomain(request)
-      setAuthCookies(cookie, domain, accessToken, refreshToken)
+    async ({ set }) => {
+      set.status = 410
+      throw new Error('Personal signin is disabled. Use team login.')
     },
     {
       body: 'signin',
@@ -193,25 +141,9 @@ app
   )
   .post(
     '/verify',
-    async ({ body, set }) => {
-      try {
-        const decoded = verifyToken(body.token)
-        const user = await User.findById(decoded.userId)
-
-        if (!user) {
-          set.status = 400
-          throw new Error('User not found')
-        }
-
-        user.isActive = true
-        await user.save()
-
-        return { message: 'Account verified' }
-      }
-      catch {
-        set.status = 400
-        return { message: 'Invalid token' }
-      }
+    async ({ set }) => {
+      set.status = 410
+      throw new Error('Account verification is disabled. Use team login.')
     },
     {
       body: 'verifyToken',
@@ -222,21 +154,9 @@ app
   )
   .post(
     '/verify-resend',
-    async ({ store, set }) => {
-      const user = await User.findById(store.userId)
-
-      if (!user) {
-        set.status = 400
-        throw new Error('User not found')
-      }
-
-      await sendVerifyEmail({
-        email: user.email,
-        userId: user.id,
-        data: {
-          username: user.name,
-        },
-      })
+    async ({ set }) => {
+      set.status = 410
+      throw new Error('Verification resend is disabled. Use team login.')
     },
     {
       requiredAuth: true,

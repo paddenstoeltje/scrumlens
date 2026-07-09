@@ -21,13 +21,18 @@ const connections = new Set<{
 
 async function withOwnerName(boards: any[]) {
   const ownerIds = [...new Set(boards.map(board => board.userId.toString()))]
-  const owners = await User.find({ _id: { $in: ownerIds } }).select('_id name').lean()
+  const owners = await User.find({ _id: { $in: ownerIds } }).select('_id name teamId').lean()
 
-  const ownerMap = new Map(owners.map((owner: any) => [owner._id.toString(), owner.name]))
+  const ownerMap = new Map<string, { name?: string, teamId?: string }>(
+    owners.map((owner: any) => [owner._id.toString(), {
+      name: owner.name,
+      teamId: owner.teamId,
+    }]),
+  )
 
   return boards.map(board => ({
     ...board,
-    ownerName: ownerMap.get(board.userId.toString()) ?? 'Unknown',
+    ownerName: ownerMap.get(board.userId.toString())?.name ?? 'Unknown',
   }))
 }
 
@@ -240,14 +245,34 @@ app
       const user = await User.findById(store.userId)
       const isAdmin = user?.teamId === 'admin'
 
+      const searchTerm = (query.search ?? '').trim()
+      const searchRegex = new RegExp(searchTerm, 'gi')
+
       let boards
       let ownCount = 0
 
       if (isAdmin) {
+        const matchingUsers = searchTerm
+          ? await User.find({
+            $or: [
+              { teamId: searchRegex },
+              { name: searchRegex },
+            ],
+          }).select('_id').lean()
+          : []
+
+        const matchingUserIds = matchingUsers.map(i => i._id)
+        const boardFilter = searchTerm
+          ? {
+              $or: [
+                { title: searchRegex },
+                { userId: { $in: matchingUserIds } },
+              ],
+            }
+          : {}
+
         // Admin sees all boards
-        boards = await Board.find({
-          title: new RegExp(query.search ?? '', 'gi'),
-        })
+        boards = await Board.find(boardFilter)
           .limit(limit)
           .skip(limit * (page - 1))
           .sort({ [sort]: order })
@@ -258,7 +283,7 @@ app
         // Regular users see only their own boards
         boards = await Board.find({
           userId: store.userId,
-          title: new RegExp(query.search ?? '', 'gi'),
+          title: searchRegex,
         })
           .limit(limit)
           .skip(limit * (page - 1))

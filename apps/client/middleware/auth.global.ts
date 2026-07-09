@@ -1,5 +1,4 @@
-import { Cookie } from '../../../shared/types'
-import { RoutePath } from '@/types'
+import { Cookie, RoutePath } from '@/types'
 
 export default defineNuxtRouteMiddleware((to) => {
   const publicRouteNames = ['auth-verify', 'boards-id-invite']

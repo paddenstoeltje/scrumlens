@@ -1,6 +1,10 @@
 import Elysia, { t } from 'elysia'
 import { WebSocketEvent } from '../../../../shared/types'
 import { User } from '@/models/user'
+import { Board } from '@/models/board'
+import { Note } from '@/models/note'
+import { Comment } from '@/models/comment'
+import { Poll } from '@/models/poll'
 import middleware from '@/middleware'
 import { generateSalt, hashPassword } from '@/utils'
 
@@ -12,6 +16,14 @@ import { generateSalt, hashPassword } from '@/utils'
 const app = new Elysia({ prefix: '/admin/users' })
 
 app.use(middleware)
+
+function normalizeTeamId(teamId?: string) {
+  return teamId?.trim().toLowerCase()
+}
+
+function teamEmail(teamId: string) {
+  return `${teamId}@scrumlens.local`
+}
 
 /**
  * Get all users (admin only)
@@ -126,17 +138,26 @@ app.post(
       throw new Error('Admin access required')
     }
     
-    // Validate username format for team users
-    if (body.teamId && body.teamId !== 'admin' && !/^team\d+$/.test(body.teamId)) {
+    const normalizedTeamId = normalizeTeamId(body.teamId)
+
+    if (!normalizedTeamId) {
       set.status = 400
-      throw new Error('Invalid teamId format')
+      throw new Error('teamId is required')
     }
-    
-    // Check if email already exists
-    const existingUser = await User.findOne({ email: body.email })
+
+    const existingTeam = await User.findOne({ teamId: normalizedTeamId })
+    if (existingTeam) {
+      set.status = 400
+      throw new Error('teamId already exists')
+    }
+
+    const technicalEmail = teamEmail(normalizedTeamId)
+
+    // Check if generated technical email already exists
+    const existingUser = await User.findOne({ email: technicalEmail })
     if (existingUser) {
       set.status = 400
-      throw new Error('Email already exists')
+      throw new Error('Technical email already exists for this teamId')
     }
     
     // Validate role
@@ -147,10 +168,10 @@ app.post(
     }
     
     const user = new User({
-      name: body.name,
-      email: body.email,
+      name: body.name || normalizedTeamId,
+      email: technicalEmail,
       password: body.password || 'changeme123',
-      teamId: body.teamId || null,
+      teamId: normalizedTeamId,
       role: body.role || 'editor',
       isActive: true,
       isGuest: false,
@@ -171,9 +192,8 @@ app.post(
   {
     body: t.Object({
       name: t.String(),
-      email: t.String(),
+      teamId: t.String(),
       password: t.Optional(t.String()),
-      teamId: t.Optional(t.String()),
       role: t.Optional(t.String()),
     }),
     detail: {
@@ -215,32 +235,30 @@ app.put(
       user.name = body.name
     }
     
-    if (body.email !== undefined) {
-      // Check if email is already used by another user
-      const existingUser = await User.findOne({ 
-        email: body.email, 
-        _id: { $ne: user.id } 
-      })
-      
-      if (existingUser) {
-        set.status = 400
-        throw new Error('Email already exists')
-      }
-      
-      user.email = body.email
-    }
-    
     if (body.password !== undefined) {
       ;(user as any).password = body.password
     }
     
     if (body.teamId !== undefined) {
-      // Validate teamId format
-      if (body.teamId && body.teamId !== 'admin' && !/^team\d+$/.test(body.teamId)) {
+      const normalizedTeamId = normalizeTeamId(body.teamId)
+
+      if (!normalizedTeamId) {
         set.status = 400
-        throw new Error('Invalid teamId format')
+        throw new Error('teamId is required')
       }
-      user.teamId = body.teamId || null
+
+      const existingTeam = await User.findOne({
+        teamId: normalizedTeamId,
+        _id: { $ne: user.id },
+      })
+
+      if (existingTeam) {
+        set.status = 400
+        throw new Error('teamId already exists')
+      }
+
+      user.teamId = normalizedTeamId
+      user.email = teamEmail(normalizedTeamId)
     }
     
     if (body.role !== undefined) {
@@ -268,7 +286,6 @@ app.put(
   {
     body: t.Object({
       name: t.Optional(t.String()),
-      email: t.Optional(t.String()),
       password: t.Optional(t.String()),
       teamId: t.Optional(t.String()),
       role: t.Optional(t.String()),
@@ -307,6 +324,16 @@ app.delete(
     if (!user) {
       set.status = 404
       throw new Error('User not found')
+    }
+
+    const boards = await Board.find({ userId: user._id }).select('_id').lean()
+    const boardIds = boards.map(board => board._id)
+
+    if (boardIds.length > 0) {
+      await Board.deleteMany({ _id: { $in: boardIds } })
+      await Note.deleteMany({ boardId: { $in: boardIds } })
+      await Comment.deleteMany({ boardId: { $in: boardIds } })
+      await Poll.deleteMany({ boardId: { $in: boardIds } })
     }
     
     await User.findByIdAndDelete(params.id)

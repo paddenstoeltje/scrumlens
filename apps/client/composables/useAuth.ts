@@ -5,7 +5,7 @@ import { api } from '~/services/api'
 import type { Signin, FixedLogin } from '~/services/api/generated'
 import { useToast } from '@/components/ui/shadcn/toast/use-toast'
 import { useUser } from './useUser'
-import { useLoadingIndicator } from '@/composables/useLoadingIndicator'
+import { useAppLoadingIndicator } from '@/composables/useLoadingIndicator'
 
 export const authStore = useStorage('isAuth', false)
 export const teamIdStore = useStorage<string | null>('teamId', null)
@@ -16,7 +16,7 @@ const { userRaw } = useUser()
 const isAuth = computed(() => authStore.value === true)
 
 async function login(body: Signin) {
-  const { start, finish } = useLoadingIndicator()
+  const { start, finish } = useAppLoadingIndicator()
 
   try {
     start()
@@ -40,7 +40,7 @@ async function login(body: Signin) {
 }
 
 async function fixedLogin(username: string, password: string) {
-  const { start, finish } = useLoadingIndicator()
+  const { start, finish } = useAppLoadingIndicator()
 
   try {
     start()
@@ -64,7 +64,7 @@ async function fixedLogin(username: string, password: string) {
 }
 
 async function logout(options: { redirect?: boolean } = {}) {
-  const { start, finish } = useLoadingIndicator()
+  const { start, finish } = useAppLoadingIndicator()
 
   try {
     start()
@@ -85,7 +85,7 @@ async function logout(options: { redirect?: boolean } = {}) {
 }
 
 async function signupGuest(name: string) {
-  const { start, finish } = useLoadingIndicator()
+  const { start, finish } = useAppLoadingIndicator()
 
   try {
     start()

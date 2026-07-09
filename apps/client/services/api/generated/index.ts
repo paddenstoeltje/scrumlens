@@ -61,15 +61,13 @@ export interface UsersMeResponse {
 
 export interface AdminUserCreate {
   name: string;
-  email: string;
+  teamId: string;
   password?: string;
-  teamId?: string;
   role?: 'admin' | 'viewer' | 'editor';
 }
 
 export interface AdminUserUpdate {
   name?: string;
-  email?: string;
   password?: string;
   teamId?: string;
   role?: 'admin' | 'viewer' | 'editor';

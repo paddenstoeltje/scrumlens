@@ -19,3 +19,8 @@ export const RoutePath = {
   Profile: '/profile',
   AdminUsers: '/admin-users',
 } as const
+
+export const Cookie = {
+  AccessToken: 'scrumlens_access_token',
+  RefreshToken: 'scrumlens_refresh_token',
+} as const

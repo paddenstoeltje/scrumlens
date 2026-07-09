@@ -62,9 +62,7 @@ watch(
     </div>
     <div class="flex-grow flex-shrink-0 flex items-center justify-center bg-primary-foreground dark:bg-primary-foreground">
       <div class="w-[350px]">
-        <LoginSignUp v-if="$route.query.type === 'signup'" />
-        <LoginSignInGuest v-else-if="$route.query.type === 'signup-as-guest'" />
-        <LoginTeamSignIn v-else />
+        <LoginTeamSignIn />
       </div>
     </div>
   </div>

@@ -47,28 +47,25 @@ const selectedUser = ref<UsersMeResponse | null>(null)
 // Form data
 const formData = ref({
   name: '',
-  email: '',
   password: '',
-  teamId: 'team1',
+  teamId: '',
   role: 'editor' as 'admin' | 'viewer' | 'editor',
 })
 
 const editFormData = ref({
   name: '',
-  email: '',
   password: '',
-  teamId: 'team1',
+  teamId: '',
   role: 'editor' as 'admin' | 'viewer' | 'editor',
   isActive: true,
 })
 
-// Team options for dropdown
+// Team options for filter dropdown
 const teamOptions = computed(() => {
-  const options = [{ value: 'none', label: 'No Team' }]
-  for (let i = 1; i <= 24; i++) {
-    options.push({ value: `team${i}`, label: `Team ${i}` })
-  }
-  return options
+  const ids = [...new Set(users.value.map(u => u.teamId).filter(Boolean))]
+  return ids
+    .sort((a, b) => String(a).localeCompare(String(b)))
+    .map(value => ({ value: String(value), label: String(value) }))
 })
 
 // Role labels
@@ -97,8 +94,8 @@ function getInitials(name: string) {
 }
 
 function formatTeam(teamId?: string) {
-  if (!teamId) return 'No Team'
-  return teamId.replace('team', 'Team ')
+  if (!teamId) return '-'
+  return teamId
 }
 
 // Fetch users
@@ -146,11 +143,7 @@ function setPage(page: number) {
 async function createUser() {
   loading.value = true
   try {
-    const payload = {
-      ...formData.value,
-      teamId: formData.value.teamId === 'none' ? undefined : formData.value.teamId,
-    }
-    await api.adminUsers.postAdminUsers(payload)
+    await api.adminUsers.postAdminUsers(formData.value)
     showCreateModal.value = false
     toast({
       title: 'Success',
@@ -174,9 +167,8 @@ function openEditModal(user: UsersMeResponse) {
   selectedUser.value = user
   editFormData.value = {
     name: user.name,
-    email: user.email,
     password: '',
-    teamId: user.teamId || 'none',
+    teamId: user.teamId || '',
     role: (user.role as 'admin' | 'viewer' | 'editor') || 'editor',
     isActive: user.isActive,
   }
@@ -189,7 +181,6 @@ async function updateUser() {
   try {
     const updateData: any = {
       ...editFormData.value,
-      teamId: editFormData.value.teamId === 'none' ? undefined : editFormData.value.teamId,
     }
     // Don't send empty password
     if (!updateData.password) delete updateData.password
@@ -293,9 +284,8 @@ function applyGeneratedPassword() {
 function resetForm() {
   formData.value = {
     name: '',
-    email: '',
     password: '',
-    teamId: 'none',
+    teamId: '',
     role: 'editor',
   }
 }
@@ -348,7 +338,7 @@ onMounted(() => {
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Input
             v-model="searchQuery"
-            placeholder="Search by name or email..."
+            placeholder="Search by name, team login, or email..."
             @keyup.enter="handleSearch"
           />
           <Select v-model="filterRole">
@@ -405,8 +395,8 @@ onMounted(() => {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Team</TableHead>
+              <TableHead>Team login</TableHead>
+              <TableHead>Email (auto)</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
               <TableHead class="text-right">Actions</TableHead>
@@ -430,10 +420,10 @@ onMounted(() => {
                   </div>
                 </div>
               </TableCell>
-              <TableCell class="font-mono text-xs sm:text-sm">{{ user.email }}</TableCell>
               <TableCell>
                 <Badge variant="outline">{{ formatTeam(user.teamId) }}</Badge>
               </TableCell>
+              <TableCell class="font-mono text-xs sm:text-sm">{{ user.email }}</TableCell>
               <TableCell>
                 <Badge :class="roleColors[user.role || 'editor']" variant="outline">
                   {{ roleLabels[user.role || 'editor'] }}
@@ -510,8 +500,8 @@ onMounted(() => {
             <Input v-model="formData.name" placeholder="John Doe" />
           </div>
           <div class="space-y-2">
-            <Label>Email</Label>
-            <Input v-model="formData.email" type="email" placeholder="john@example.com" />
+            <Label>Team login</Label>
+            <Input v-model="formData.teamId" placeholder="team-alpha" />
           </div>
           <div class="space-y-2">
             <Label>Password</Label>
@@ -521,19 +511,6 @@ onMounted(() => {
                 <RefreshCw class="w-4 h-4" />
               </Button>
             </div>
-          </div>
-          <div class="space-y-2">
-            <Label>Team</Label>
-            <Select v-model="formData.teamId">
-              <SelectTrigger>
-                <SelectValue placeholder="Select team" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="team in teamOptions" :key="team.value" :value="team.value || ''">
-                  {{ team.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <div class="space-y-2">
             <Label>Role</Label>
@@ -568,25 +545,12 @@ onMounted(() => {
             <Input v-model="editFormData.name" placeholder="Name" />
           </div>
           <div class="space-y-2">
-            <Label>Email</Label>
-            <Input v-model="editFormData.email" type="email" placeholder="Email" />
+            <Label>Team login</Label>
+            <Input v-model="editFormData.teamId" placeholder="team-alpha" />
           </div>
           <div class="space-y-2">
             <Label>New Password (leave blank to keep current)</Label>
             <Input v-model="editFormData.password" type="password" placeholder="New password..." />
-          </div>
-          <div class="space-y-2">
-            <Label>Team</Label>
-            <Select v-model="editFormData.teamId">
-              <SelectTrigger>
-                <SelectValue placeholder="Select team" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="team in teamOptions" :key="team.value" :value="team.value || ''">
-                  {{ team.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <div class="space-y-2">
             <Label>Role</Label>

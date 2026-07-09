@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import type { WebSocketEventData } from '../../../../../shared/types'
+import type { WebSocketEventData } from '@/types/realtime'
 import { useBoard } from './useBoard'
 import { useToast } from '@/components/ui/shadcn/toast/use-toast'
 import { RoutePath } from '@/types'

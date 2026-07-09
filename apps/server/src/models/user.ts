@@ -29,8 +29,9 @@ export const userSchema = new Schema(
     },
     teamId: {
       type: String,
-      enum: ['admin', 'team1', 'team2', 'team3', 'team4', 'team5', 'team6', 'team7', 'team8', 'team9', 'team10', 'team11', 'team12', 'team13', 'team14', 'team15', 'team16', 'team17', 'team18', 'team19', 'team20', 'team21', 'team22', 'team23', 'team24'],
-      default: null,
+      unique: true,
+      sparse: true,
+      default: undefined,
     },
     role: {
       type: String,

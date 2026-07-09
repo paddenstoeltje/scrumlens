@@ -6,9 +6,9 @@ import { checkPassword, generateAccessTokens, resolveCookieDomain } from '@/util
 import middleware from '@/middleware'
 
 /**
- * Fixed authentication route for team-based access.
- * Users log in with username (team1-team24, admin) and a shared password.
- * The email is derived as: username@scrumlens.local
+ * Team authentication route for shared team access.
+ * Users log in with a team key (stored in User.teamId) and a shared password.
+ * Legacy passwords.md entries are still accepted as fallback.
  */
 
 function loadPasswords(): Record<string, string> {
@@ -120,22 +120,23 @@ app
         throw new Error('Username and password are required')
       }
 
-      if (username !== 'admin' && !/^team\d+$/.test(username)) {
+      const teamKey = username.trim()
+
+      if (!teamKey || teamKey.length < 2 || teamKey.length > 64) {
         set.status = 400
-        throw new Error('Invalid username')
+        throw new Error('Invalid team key')
       }
 
-      const filePasswords = getPasswords()
+      let user = await User.findOne({ teamId: teamKey })
       let isValidPassword = false
 
-      if (filePasswords[username])
-        isValidPassword = password === filePasswords[username]
+      if (user)
+        isValidPassword = checkPassword(password, user.password, user.salt!)
 
       if (!isValidPassword) {
-        const user = await User.findOne({ teamId: username })
-
-        if (user)
-          isValidPassword = checkPassword(password, user.password, user.salt!)
+        const filePasswords = getPasswords()
+        if (filePasswords[teamKey])
+          isValidPassword = password === filePasswords[teamKey]
       }
 
       if (!isValidPassword) {
@@ -143,16 +144,14 @@ app
         throw new Error('Invalid login or password')
       }
 
-      let user = await User.findOne({ teamId: username })
-
       if (!user) {
-        const email = `${username}@scrumlens.local`
+        const email = `${teamKey}@scrumlens.local`
         user = new User({
-          name: username === 'admin' ? 'Admin' : `Team ${username.replace('team', '')}`,
+          name: teamKey === 'admin' ? 'Admin' : teamKey,
           email,
           password: '',
-          teamId: username,
-          role: username === 'admin' ? 'admin' : 'editor',   
+          teamId: teamKey,
+          role: teamKey === 'admin' ? 'admin' : 'editor',
           isActive: true,
           isGuest: false,
         })
@@ -161,7 +160,7 @@ app
         await user.save()
       }
 
-      if (user.teamId !== username) {
+      if (user.teamId !== teamKey) {
         set.status = 403
         throw new Error('Access denied')
       }

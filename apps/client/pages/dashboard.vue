@@ -5,7 +5,17 @@ import type { BoardResponse } from '~/services/api/generated'
 const { userRaw } = useUser()
 const { getBoards, boardsRaw, isOpenEditDialog, editId } = useBoard()
 
-await getBoards()
+const searchQuery = ref('')
+
+async function fetchBoards() {
+  const search = searchQuery.value.trim()
+
+  await getBoards({
+    search: search || undefined,
+  })
+}
+
+await fetchBoards()
 
 const editBoard = computed(() => boardsRaw.value?.items.find(i => i._id === editId.value) as unknown as BoardResponse)
 
@@ -24,6 +34,26 @@ const boardsStatic = computed(() => {
     </UiHeading>
     <div class="mb-7">
       <UiText v-html="boardsStatic" />
+    </div>
+    <div class="mb-4 flex items-center gap-2 max-w-md">
+      <Input
+        v-model="searchQuery"
+        placeholder="Search by board or team login..."
+        @keyup.enter="fetchBoards"
+      />
+      <Button
+        size="sm"
+        @click="fetchBoards"
+      >
+        Search
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        @click="searchQuery = ''; fetchBoards()"
+      >
+        Clear
+      </Button>
     </div>
     <div class="grid grid-cols-4 gap-4">
       <DashboardCardAdd v-if="!userRaw?.isGuest" />
