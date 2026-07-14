@@ -22,7 +22,7 @@ const props = defineProps<Props>()
 const { userRaw } = useUser()
 
 const isUserOwner = computed(() => userRaw.value?._id === props.data.userId)
-const isSystemAdmin = computed(() => userRaw.value?.teamId === 'admin')
+const isSystemAdmin = computed(() => userRaw.value?.role === 'admin')
 const canManageBoard = computed(() => isUserOwner.value || isSystemAdmin.value)
 
 const ownerLabel = computed(() => {
