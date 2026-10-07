@@ -84,6 +84,7 @@ app.get(
       role: t.Optional(t.String()),
       teamId: t.Optional(t.String()),
     }),
+    requiredAuth: true,
     detail: {
       tags: ['Admin Users'],
       description: 'Get all users (admin only)',
@@ -116,6 +117,7 @@ app.get(
     return JSON.parse(JSON.stringify(user))
   },
   {
+    requiredAuth: true,
     detail: {
       tags: ['Admin Users'],
       description: 'Get user by ID (admin only)',
@@ -196,6 +198,7 @@ app.post(
       password: t.Optional(t.String()),
       role: t.Optional(t.String()),
     }),
+    requiredAuth: true,
     detail: {
       tags: ['Admin Users'],
       description: 'Create a new user (admin only)',
@@ -291,6 +294,7 @@ app.put(
       role: t.Optional(t.String()),
       isActive: t.Optional(t.Boolean()),
     }),
+    requiredAuth: true,
     detail: {
       tags: ['Admin Users'],
       description: 'Update an existing user (admin only)',
@@ -341,6 +345,7 @@ app.delete(
     return { message: 'User deleted successfully' }
   },
   {
+    requiredAuth: true,
     detail: {
       tags: ['Admin Users'],
       description: 'Delete a user (admin only)',
@@ -380,6 +385,7 @@ app.post(
     body: t.Object({
       newPassword: t.String(),
     }),
+    requiredAuth: true,
     detail: {
       tags: ['Admin Users'],
       description: 'Reset a user password (admin only)',
